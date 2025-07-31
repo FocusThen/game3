@@ -1,19 +1,18 @@
-player = world:newBSGRectangleCollider(234, 184, 12, 12, 3)
+player = world:newBSGRectangleCollider(0, 0, 10, 20, 1)
 player.x = 0
 player.y = 0
 player.walking = false
 player.health = 1
-player.speed = 90
+player.speed = 140
 player.animSpeed = 0.14
+player.animTimer = 0
 player.rollDelayTimer = 0
 player.baseDamping = 12 -- base damping ?
-player.dirX = 1
-player.dirY = 1
-player.prevDirX = 1
-player.prevDirY = 1
+player.direction = 1
+player.grounded = true
 
 local state = { NONE = -1, NORMAL = 1, ROLL = 0.5, DEAD = 3 }
-player.state = state.NONE
+player.state = state.NORMAL
 
 player:setCollisionClass("Player")
 player:setFixedRotation(true)
@@ -30,13 +29,10 @@ player.animations.dead = anim8.newAnimation(player.grid("1-4", 8), player.animSp
 
 player.anim = player.animations.idle
 
--- player.buffer = {} -- input buffer
+player.buffer = {} -- input buffer
 
 function player:update(dt)
 	-- if pause.active then player.anim:update(dt) end
-
-	player.anim:update(dt)
-
 	if player.state == state.NONE then
 		return
 	end
@@ -48,29 +44,37 @@ function player:update(dt)
 	if player.state == state.NORMAL then
 		player:setLinearDamping(player.baseDamping)
 
-		player.prevDirX = player.dirX
-		player.prevDirY = player.dirY
+		if player.body then
+			local colliders = world:queryRectangleArea(player:getX() - 7, player:getY() + 10, 12, 2, { "Ground" })
+			if #colliders > 0 then
+				player.grounded = true
+			else
+				player.grounded = false
+			end
+			player.walking = false
 
-		local dirX = 0
-		local dirY = 0
-
-		-- if pause.active then return end
-		-- Player Movement
-		if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-			player.anim = player.animations.run
-			dirX = 1
-			player.dirX = 1
+			local px, py = player:getPosition()
+			if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
+				player:setX(px + player.speed * dt)
+				player.walking = true
+				player.direction = 1
+			end
+			if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
+				player:setX(px - player.speed * dt)
+				player.walking = true
+				player.direction = -1
+			end
 		end
-		if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-			player.anim = player.animations.run
-			player.dirX = -1
-			dirX = -1
+
+		if player.grounded then
+			if player.walking then
+				player.anim = player.animations.run
+			else
+				player.anim = player.animations.idle
+			end
 		end
 
-		if dirY == 0 and dirX ~= 0 then
-			player.dirY = 1
-		end
-
+		--
 		-- Player Effects
 		-- if player.walking then
 		-- 	player.dustTimer = player.dustTimer - dt
@@ -82,28 +86,6 @@ function player:update(dt)
 		-- 	player.dustTimer = 0
 		-- end
 
-		if player.walking then
-			if player.dirX == 1 then
-				player.anim = player.animations.run
-			else
-				player.anim = player.animations.run
-			end
-		end
-
-		local vec = vector(dirX, dirY):normalized() * player.speed
-		if vec.x ~= 0 or vec.y ~= 0 then
-			player:setLinearVelocity(vec.x, vec.y)
-		end
-
-		if dirX == 0 and dirY == 0 then
-			if player.walking then
-				player.walking = false
-				player.anim = player.animations.idle
-			end
-		else
-			player.walking = true
-		end
-
 		player.anim:update(dt)
 
 		if player.animTimer > 0 then
@@ -112,7 +94,9 @@ function player:update(dt)
 				player.animTimer = 0
 			end
 		end
+
 	elseif player.state == state.ROLL then
+    -- player:checkTransition()
 		player.anim:update(dt)
 
 		player.animTimer = player.animTimer - dt
@@ -125,29 +109,61 @@ function player:update(dt)
 end
 
 function player:draw()
-	player.anim:draw(sprites.playerSheet, player:getX(), player:getY() - 2, nil, player.dirX, 1, 16, 16)
+	player.anim:draw(sprites.playerSheet, player:getX(), player:getY(), nil, player.direction, 1, 16, 16)
 end
 
 function player:roll()
-	local dirX = 0
-	local dirY = 0
-
-	if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-		dirX = 1
-	end
-
-	if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-		dirX = -1
-	end
-
-	if dirX == 0 and dirY == 0 then
+	if player.state ~= state.NORMAL or player.rollDelayTimer > 0 then
+		player:addToBuffer("roll")
 		return
-	end -- must have some direction to roll
-
-	player.state = 0.5
+	end
+	player.state = state.ROLL
 	player.animTimer = 0.3
 	player:setLinearDamping(1.75)
+	player.anim = player.animations.roll
 
-	local dirVec = vector(dirX, dirY):normalized() * 160
-	player:setLinearVelocity(dirVec.x, dirVec.y)
+	player:setLinearVelocity(player.speed * 2 * player.direction, 0)
+end
+
+function player:processBuffer(dt)
+	for i = #player.buffer, 1, -1 do
+		player.buffer[i][2] = player.buffer[i][2] - dt
+	end
+	for i = #player.buffer, 1, -1 do
+		if player.buffer[i][2] <= 0 then
+			table.remove(player.buffer, i)
+		end
+	end
+
+	if player.state == 0 then
+		player:useBuffer()
+	end
+end
+
+function player:addToBuffer(action)
+	if action == "roll" and player.state == 0.5 then
+		table.insert(player.buffer, { action, 0.1 })
+	else
+		table.insert(player.buffer, { action, 0.25 })
+	end
+end
+
+function player:useBuffer()
+	local action = nil
+	if #player.buffer > 0 then
+		action = player.buffer[1][1]
+	end
+
+	-- clear buffer
+	for k, v in pairs(player.buffer) do
+		player.buffer[k] = nil
+	end
+
+	if action == nil then
+		return
+	end
+
+	if action == "roll" then
+		player:roll()
+	end
 end

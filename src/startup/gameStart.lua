@@ -3,19 +3,21 @@ function gameStart()
 	love.graphics.setBackgroundColor(26 / 255, 26 / 255, 26 / 255)
 	love.graphics.setDefaultFilter("nearest", "nearest")
 
-	fullscreen = true
-	setWindowSize(fullscreen, 1920, 1080)
+	fullscreen = false
+	setWindowSize(fullscreen, 950, 720)
 
 	setScale()
 
 	vector = require("libs/hump/vector")
 	anim8 = require("libs/anim8/anim8")
 	sti = require("libs/Simple-Tiled-Implementation/sti")
-  gameMap = sti("maps/" .. "level1" .. ".lua")
 
 	local windfield = require("libs/windfield/windfield")
-	world = windfield.newWorld(0, 0, false)
+	world = windfield.newWorld(0, 2000, false)
 	world:setQueryDebugDrawing(true)
+
+  require("src/startup/require")
+  requireAll()
 end
 
 function setWindowSize(full, width, height)
