@@ -1,25 +1,19 @@
-player = world:newBSGRectangleCollider(0, 0, 10, 20, 1)
-player.x = 0
-player.y = 0
-player.walking = false
-player.health = 1
-player.speed = 140
-player.animSpeed = 0.14
-player.animTimer = 0
-player.rollDelayTimer = 0
-player.baseDamping = 12 -- base damping ?
-player.direction = 1
-player.grounded = true
-
-local state = { NONE = -1, NORMAL = 1, ROLL = 0.5, DEAD = 3 }
-player.state = state.NORMAL
-
+player = world:newBSGRectangleCollider(115, 168, 10, 15, 1)
 player:setCollisionClass("Player")
 player:setFixedRotation(true)
-player:setLinearDamping(player.baseDamping)
+player.startX = 0
+player.startY = 0
+player.speed = 120
+player.grounded = false
+player.animTimer = 0
+player.direction = 1
+player.isMoving = false
+player.animSpeed = 0.14
+
+local state = { NONE = -1, NORMAL = 1, ROLL = 0.5, DEAD = 3, TALK = 10 }
+player.state = state.NORMAL
 
 player.grid = anim8.newGrid(32, 32, sprites.playerSheet:getWidth(), sprites.playerSheet:getHeight())
-
 player.animations = {}
 player.animations.idle = anim8.newAnimation(player.grid("1-4", 1), player.animSpeed)
 player.animations.run = anim8.newAnimation(player.grid("2-8", 3), player.animSpeed)
@@ -29,141 +23,146 @@ player.animations.dead = anim8.newAnimation(player.grid("1-4", 8), player.animSp
 
 player.anim = player.animations.idle
 
-player.buffer = {} -- input buffer
+player.interactObject = nil
+
+player.checkpointMap = ""
+player.checkpointX = 0
+player.checkpointY = 0
 
 function player:update(dt)
-	-- if pause.active then player.anim:update(dt) end
-	if player.state == state.NONE then
+	if player.state == state.TALK then
+		player:checkGrounded()
+		player:setAnimation()
 		return
 	end
 
-	if player.rollDelayTimer > 0 then
-		player.rollDelayTimer = player.rollDelayTimer - dt
+	if player.state >= state.DEAD then
+		return
 	end
 
-	if player.state == state.NORMAL then
-		player:setLinearDamping(player.baseDamping)
-
-		if player.body then
-			local colliders = world:queryRectangleArea(player:getX() - 7, player:getY() + 10, 12, 2, { "Ground" })
-			if #colliders > 0 then
-				player.grounded = true
-			else
-				player.grounded = false
-			end
-			player.walking = false
-
-			local px, py = player:getPosition()
-			if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-				player:setX(px + player.speed * dt)
-				player.walking = true
-				player.direction = 1
-			end
-			if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-				player:setX(px - player.speed * dt)
-				player.walking = true
-				player.direction = -1
-			end
-		end
-
-		if player.grounded then
-			if player.walking then
-				player.anim = player.animations.run
-			else
-				player.anim = player.animations.idle
-			end
-		end
-
-		--
-		-- Player Effects
-		-- if player.walking then
-		-- 	player.dustTimer = player.dustTimer - dt
-		-- 	if player.dustTimer < 0 then
-		-- 		player.dustTimer = 0.22
-		-- 		effects:spawn("walkDust", player:getX(), player:getY() + 6, { dir = vec:normalized() })
-		-- 	end
-		-- else
-		-- 	player.dustTimer = 0
-		-- end
-
-		player.anim:update(dt)
-
-		if player.animTimer > 0 then
-			player.animTimer = player.animTimer - dt
-			if player.animTimer < 0 then
-				player.animTimer = 0
-			end
-		end
-
-	elseif player.state == state.ROLL then
-    -- player:checkTransition()
-		player.anim:update(dt)
-
+	if player.animTimer > 0 then
 		player.animTimer = player.animTimer - dt
 		if player.animTimer < 0 then
-			player.state = state.NORMAL
 			player.animTimer = 0
-			player.rollDelayTimer = 0.3
 		end
+	end
+
+	player:checkGrounded()
+	player.isMoving = false
+
+	if love.keyboard.isDown("right") or love.keyboard.isDown("d") then
+		player:applyForce(200, 0)
+		player.isMoving = true
+		player.direction = 1
+
+		local pvx, pvy = player:getLinearVelocity()
+		if pvx > player.speed then
+			player:setLinearVelocity(player.speed, pvy)
+		end
+	end
+
+	if love.keyboard.isDown("left") or love.keyboard.isDown("a") then
+		player:applyForce(-200, 0)
+		player.isMoving = true
+		player.direction = -1
+
+		local pvx, pvy = player:getLinearVelocity()
+		if pvx < -1 * player.speed then
+			player:setLinearVelocity(-1 * player.speed, pvy)
+		end
+	end
+
+	player:setAnimation()
+	player:checkInteract()
+
+  player.anim:update(dt)
+
+	if player:enter("Danger") or player:enter("Enemy") then
+		player:die()
 	end
 end
 
 function player:draw()
-	player.anim:draw(sprites.playerSheet, player:getX(), player:getY(), nil, player.direction, 1, 16, 16)
-end
-
-function player:roll()
-	if player.state ~= state.NORMAL or player.rollDelayTimer > 0 then
-		player:addToBuffer("roll")
+	if player.state == state.DEAD then
 		return
 	end
-	player.state = state.ROLL
-	player.animTimer = 0.3
-	player:setLinearDamping(1.75)
-	player.anim = player.animations.roll
+	local px, py = player:getPosition()
 
-	player:setLinearVelocity(player.speed * 2 * player.direction, 0)
+	player.anim:draw(sprites.playerSheet, px, py - 1, nil, player.direction, 1, 16, 16)
+
+	-- if player.interactObject and player.interactObject.canShowIcon then
+	--     setWhite()
+	--     love.graphics.draw(sprites.ui.upButton, player.interactObject.iconX, player.interactObject.iconY, nil, nil, nil, 12, 12)
+	-- end
 end
 
-function player:processBuffer(dt)
-	for i = #player.buffer, 1, -1 do
-		player.buffer[i][2] = player.buffer[i][2] - dt
+function player:checkGrounded()
+	local px, py = player:getPosition()
+	local colliders = world:queryRectangleArea(px - 6, py + 7, 12, 2, { "Platform", "Ground" })
+	if #colliders > 0 then
+		player.grounded = true
+	else
+		player.grounded = false
 	end
-	for i = #player.buffer, 1, -1 do
-		if player.buffer[i][2] <= 0 then
-			table.remove(player.buffer, i)
+end
+
+function player:setAnimation()
+	local pvx, pvy = player:getLinearVelocity()
+
+	if player.grounded then
+		if player.isMoving then
+			player.anim = player.animations.run
+		else
+			player.anim = player.animations.idle
+		end
+
+		if
+			not love.keyboard.isDown("right")
+			and not love.keyboard.isDown("left")
+			and not love.keyboard.isDown("d")
+			and not love.keyboard.isDown("a")
+		then
+			player:setLinearVelocity(pvx * 0.92, pvy)
 		end
 	end
-
-	if player.state == 0 then
-		player:useBuffer()
-	end
 end
 
-function player:addToBuffer(action)
-	if action == "roll" and player.state == 0.5 then
-		table.insert(player.buffer, { action, 0.1 })
-	else
-		table.insert(player.buffer, { action, 0.25 })
-	end
-end
-
-function player:useBuffer()
-	local action = nil
-	if #player.buffer > 0 then
-		action = player.buffer[1][1]
-	end
-
-	-- clear buffer
-	for k, v in pairs(player.buffer) do
-		player.buffer[k] = nil
-	end
-
-	if action == nil then
+function player:jump()
+	if player.state ~= state.NORMAL then
 		return
 	end
-
-	if action == "roll" then
-		player:roll()
+	local pvx, pvy = player:getLinearVelocity()
+	if player.grounded then
+		player:setLinearVelocity(pvx, -300)
 	end
+end
+
+function player:respawn()
+	player:setPosition(player.startX, player.startY)
+	player:reset()
+	player.state = state.NORMAL
+end
+
+function player:reset()
+	player:setLinearVelocity(0, 0)
+	player.isMoving = false
+	player.anim = player.animations.idle
+end
+
+-- look after
+function player:checkInteract()
+	-- local px, py = player:getPosition()
+	-- local colliders = world:queryCircleArea(px, py, 7, { "Interact" })
+	-- if #colliders > 0 and player.grounded then
+	-- 	player.interactObject = colliders[1].parent
+	-- else
+	-- 	player.interactObject = nil
+	-- end
+end
+
+function player:interact()
+	-- if player.interactObject and player.state == 1 then
+	-- 	player.interactObject:interact()
+	-- 	player:reset()
+	-- end
 end

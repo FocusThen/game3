@@ -1,6 +1,7 @@
 sprites = {}
-
 sprites.playerSheet = love.graphics.newImage("assets/sprites/knight.png")
+sprites.environment = {}
+sprites.environment.platform = love.graphics.newImage("assets/sprites/platforms.png")
 
 -- since fonts are influenced by scale, they need to be re-initialized when the scale changes
 function initFonts()

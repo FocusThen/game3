@@ -33,7 +33,8 @@ function cam:update(dt)
 		camY = (mapH - h / 2)
 	end
 
-	cam:lockPosition(camX, camY)
+  -- camY to h
+	cam:lockPosition(camX, h)
 
 	-- cam.x and cam.y keep track of where the camera is located
 	-- the lookAt value may be moved if a screenshake is happening, so these

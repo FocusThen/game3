@@ -1,13 +1,18 @@
 walls = {}
 
-function spawnWall(x, y, width, height, name, type, parent)
-	local wall = world:newRectangleCollider(x, y, width, height, { collision_class = "Wall" })
+function spawnWall(x, y, width, height, name, type, parent, coliderType)
+	local wall = world:newRectangleCollider(x, y, width, height, { collision_class = "Ground" })
 	wall:setType("static")
 	wall.dead = false
 	wall.offY = 0
 	wall.name = name
 	wall.parent = parent
 	wall.type = type
+  wall.coliderType = coliderType
+
+  if wall.coliderType == "platform" then
+    wall:setType("dynamic")
+  end
 
 	-- if name and name:startswith("break") then
 	-- 	wall.breakable = true
@@ -38,11 +43,11 @@ function spawnWall(x, y, width, height, name, type, parent)
 		-- end
 	-- end
 
-	if wall.type then
-		if wall.type == "ground" then
-			wall:setCollisionClass("Ground")
-		end
-	end
+	-- if wall.type then
+	-- 	if wall.type == "ground" then
+	-- 		wall:setCollisionClass("Ground")
+	-- 	end
+	-- end
 
 	table.insert(walls, wall)
 end

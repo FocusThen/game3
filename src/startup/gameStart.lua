@@ -4,7 +4,7 @@ function gameStart()
 	love.graphics.setDefaultFilter("nearest", "nearest")
 
 	fullscreen = false
-	setWindowSize(fullscreen, 950, 720)
+	setWindowSize(fullscreen, 1000, 768)
 
 	setScale()
 
@@ -13,7 +13,7 @@ function gameStart()
 	sti = require("libs/Simple-Tiled-Implementation/sti")
 
 	local windfield = require("libs/windfield/windfield")
-	world = windfield.newWorld(0, 2000, false)
+	world = windfield.newWorld(0, 1600, false)
 	world:setQueryDebugDrawing(true)
 
   require("src/startup/require")

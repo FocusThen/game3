@@ -1,13 +1,15 @@
 function love.load()
 	math.randomseed(os.time())
 
+  --debug variables
+  d1= 0
+  d2= 0
+
 	colliderToggle = false
 
 	require("src/startup/gameStart")
 	gameStart()
-  loadMap("Level1")
-
-	-- dj.volume("effect", 1)
+	loadMap("Level1")
 end
 
 function love.update(dt)
@@ -15,7 +17,7 @@ function love.update(dt)
 end
 
 function love.draw()
-	-- drawBeforeCamera()
+	drawBeforeCamera()
 
 	cam:attach()
 	drawCamera()
@@ -24,7 +26,10 @@ function love.draw()
 	end
 	cam:detach()
 
-	-- drawAfterCamera()
+	drawAfterCamera()
+
+	local debug = require("src/debug")
+	-- debug:d()
 end
 
 function love.keypressed(key)
@@ -33,14 +38,14 @@ function love.keypressed(key)
 	end
 
 	if key == "q" then
-    colliderToggle= not colliderToggle
+		colliderToggle = not colliderToggle
 	end
 
-  if key == 'up' or key == 'w' then
-    if player.grounded then
-      player:applyLinearImpulse(0, -350)
-    end
-  end
+	if key == "space" or key == "w" then
+		player:jump()
+	end
+
+	--  TODO: add roll
 	if key == "z" then
 		player:roll() -- check if better to do this in player:update()
 	end
