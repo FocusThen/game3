@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="38" height="22" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="20">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="38" height="22" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="22">
  <editorsettings>
   <export target="Level1.lua" format="lua"/>
  </editorsettings>
@@ -58,7 +58,7 @@
 241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241,241
 </data>
  </layer>
- <objectgroup id="3" name="Walls">
+ <objectgroup color="#ff2a3d" id="3" name="Walls">
   <object id="2" x="65.0177" y="208.836" width="111.019" height="14.1718"/>
   <object id="3" x="225.006" y="209.063" width="30.1151" height="14.6147"/>
   <object id="4" x="288.761" y="208.827" width="30.558" height="14.1718"/>
@@ -74,7 +74,7 @@
   <object id="17" name="big" x="429.426" y="211.616">
    <point/>
   </object>
-  <object id="19" name="small" x="72.8166" y="183.643">
+  <object id="21" name="big" x="79.8026" y="183.846">
    <point/>
   </object>
  </objectgroup>

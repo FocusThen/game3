@@ -98,7 +98,7 @@ end
 
 function player:checkGrounded()
 	local px, py = player:getPosition()
-	local colliders = world:queryRectangleArea(px - 6, py + 7, 12, 2, { "Platform", "Ground" })
+	local colliders = world:queryRectangleArea(px - 3, py + 7, 5, 2, { "Platform", "Ground" })
 	if #colliders > 0 then
 		player.grounded = true
 	else

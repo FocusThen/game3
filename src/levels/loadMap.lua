@@ -15,7 +15,7 @@ function loadMap(mapName, destX, destY)
 
 	if gameMap.layers["Platforms"] then
 		for i, obj in pairs(gameMap.layers["Platforms"].objects) do
-			spawnPlatform(obj.x, obj.y, obj.width, obj.height, obj.name, obj.type)
+			spawnPlatform(obj.x, obj.y, obj.name, obj.type)
 		end
 	end
 
